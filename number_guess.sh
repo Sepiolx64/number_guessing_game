@@ -11,14 +11,15 @@ then
   USER_INFO=$($PSQL "SELECT username, COUNT(*) AS games_played, MIN(number_of_guesses) AS best_game FROM users LEFT JOIN games ON users.user_id=games.user_id WHERE username='$USERNAME' GROUP BY username")
   echo $USER_INFO | while IFS="|" read USERNAME GAMES_PLAYED BEST_GAME
     do
-      echo -e "\nWelcome back, $USERNAME! You have played $GAMES_PLAYED games, and your best game took $BEST_GAME guesses."
+      echo "Welcome back, $USERNAME! You have played $GAMES_PLAYED games, and your best game took $BEST_GAME guesses."
     done
-else
-  echo -e "\nWelcome $USERNAME! It looks like this is your first time here."
+elif [[ -z $CHECK_USERNAME ]]
+then
+  echo "Welcome, $USERNAME! It looks like this is your first time here."
+  INPUT_USER=$($PSQL "INSERT INTO users(username) VALUES('$USERNAME')")
 fi
 
 RANDOM_NUMBER=$[$RANDOM % 1000 + 1]
-echo $RANDOM_NUMBER
 echo -e "\nGuess the secret number between 1 and 1000:"
 
 READ_SECRET_NUMBER() {
@@ -40,9 +41,9 @@ READ_SECRET_NUMBER() {
   elif [[ $SECRET_NUMBER < $RANDOM_NUMBER ]]
   then
     READ_SECRET_NUMBER "It's higher than that, guess again:"
-  else
+  elif [[ $SECRET_NUMBER == $RANDOM_NUMBER ]]
+  then
     echo "You guessed it in $NUMBER_OF_GUESSES tries. The secret number was $RANDOM_NUMBER. Nice job!"
-    INPUT_USER=$($PSQL "INSERT INTO users(username) VALUES('$USERNAME')")
     USER_ID=$($PSQL "SELECT user_id FROM users WHERE username='$USERNAME'")
     INPUT_CORRECT_GUESS=$($PSQL "INSERT INTO games(user_id, number_of_guesses) VALUES($USER_ID, $NUMBER_OF_GUESSES)")
   fi
